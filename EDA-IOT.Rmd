@@ -1,0 +1,97 @@
+---
+title: "EDA-IOT"
+author: "Alvar Fernández"
+date: "16/12/2021"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+	echo = TRUE,
+	message = FALSE,
+	warning = FALSE
+)
+```
+
+```{r include=FALSE}
+library(tidyverse)
+library(ggplot2)
+library(readr)
+library(dplyr)
+library(readxl)
+```
+
+
+# Analysing a mobile IOT dataset.
+En este documento analizaremos el conjunto de datos recogidos mediante la plataforma AWARE, recolectando información de distintos sensores de varios dispositivos moviles (smartphones).
+
+Esta plataforma hace uso de los distintos sensores que dispone el dispositivo móvil, además de proporcionarnos información interna como el uso de aplicaciones, batería, etc. 
+
+El conjunto de datasets nos ofrece una gran cantidad de información, pero para este trabajo vamos a analizar solo uno de ellos:
+
+En concreto, analizaremos el dataset de aceleraciones:
+```{r include=FALSE}
+route <-"C:/Users/alvar/Desktop/UGR/Universidad/IOT/AWARE-Dataset-Large/accelerometer.csv"
+```
+
+
+```{r}
+
+accelerometer <- read_csv(route)
+
+head(accelerometer)
+```
+Este dataset está compuesto por un id de cada medición, el id del dispositivo que estamos analizando, los correspondientes valores de la aceleración en xyz , el nivel de precisión y una etiqueta.
+
+Con un simple vistazo al csv en un cliente como MS Excel podemos apreciar que el valor de label es NA. 
+```{r}
+apply(is.na(accelerometer), 2, sum)
+```
+Con esta función comprobamos que el valor de label se omite, asi que lo eliminamos de nuestro dataframe.
+```{r}
+accelerometer <- select(accelerometer, -label)
+head(accelerometer)
+```
+
+
+
+También sería interesante nombrar la columna de los ejes con su respectivo nombre:
+
+```{r}
+colnames(accelerometer)
+colnames(accelerometer)[4] <- "ejeX"
+colnames(accelerometer)[5] <- "ejeY"
+colnames(accelerometer)[6] <- "ejeZ"
+colnames(accelerometer)
+```
+
+Además, el tiempo de recogida de datos nos viene como un timestamp, por lo que sería conveniente convertirlo a un formato de fecha:
+```{r}
+formated_dates <- as.POSIXct(accelerometer$timestamp/1000, origin="1970-01-01")
+```
+
+Introducimos las fechas formateadas en nuestro dataframe:
+```{r}
+accelerometer <- select(accelerometer, -timestamp)
+accelerometer <- cbind(accelerometer, formated_dates)
+head(accelerometer)
+```
+
+Ahora podemos graficar, por ejemplo, las aceleraciones del ejeX de todos los dispotivos (observando previamente que los dispotivios usan el mismo sensor de medición, el LGE Accelerometer de BOSCH --> sensor_accelerometer.csv):
+
+```{r}
+ggplot(accelerometer, aes( formated_dates, ejeX)) +
+  geom_line()
+```
+También se puede realizar cada estudio de este estilo separando y seleccionado un dispositivo, pero para este caso en concreto no nos importa coleccionar y mostrar los datos de todos los dispositivos que hemos medido.
+
+
+## Conclusion.
+
+Como hemos podido observar con el dataset de aceleración, el conjunto de datos que nos proporciona el servicio de AWARE no es del todo perfecto, necesitando un previo tratamiento para poder ser usado correctamente. En este ejemplo solo hemos analizado el dataset del acelerometro, pero podríamos ampliar nuestro estudio a todos los datasets que fuesen de nuestro interés.
+
+Por ejemplo, si quisiesemos estudiar el uso del teléfono móvil mientras estamos en movimiento podríamos analizar por cada device_id la relación de aceleraciones (accelerometer.csv) o localizaciones (locations.csv) con el uso de la pantalla del dispositivo móvil (screen.csv).
+
+Actualmente podríamos decir que todo el mundo usa un smartphone y casi siempre lo lleva consigo. Esto hace que el smartphone sea un conjunto de sensores muy potente para recopilar datos, ya no solo del smartphone en sí, sino de los distintos hábitos del ser humano.
